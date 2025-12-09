@@ -12,6 +12,7 @@ import {
   QueryArchitectureInputSchema,
   RefactorToFoundationInputSchema,
   ValidatePluginInputSchema,
+  WordPressIntegrationInputSchema,
   GeneratePluginSchema,
   GenerateComponentSchema,
   AnalyzePatternSchema,
@@ -19,6 +20,8 @@ import {
   QueryArchitectureSchema,
   RefactorToFoundationSchema,
   ValidatePluginSchema,
+  WordPressIntegrationParams,
+  WordPressIntegrationSchema,
 } from '../types.js';
 import { CodebaseIndexer } from '../engines/CodebaseIndexer.js';
 import { PluginAnalyzer } from '../engines/PluginAnalyzer.js';
@@ -120,6 +123,11 @@ export class ToolHandler {
             required: ['slug'],
           },
         },
+        {
+          name: 'wordpress_integration_guide',
+          description: 'Guidance for using Foundation inside WordPress themes or plugins',
+          inputSchema: WordPressIntegrationInputSchema,
+        },
       ],
     };
   }
@@ -158,6 +166,9 @@ export class ToolHandler {
 
         case 'get_component_reference':
           return await this.handleGetComponentReference(args);
+
+        case 'wordpress_integration_guide':
+          return await this.handleWordPressIntegrationGuide(args);
 
         default:
           throw new Error(`Unknown tool: ${name}`);
@@ -439,6 +450,103 @@ export class ToolHandler {
           type: 'text',
           text: JSON.stringify(reference, null, 2),
         },
+      ],
+    };
+  }
+
+  /**
+   * Handle WordPress integration guidance
+   */
+  private async handleWordPressIntegrationGuide(args: any) {
+    const params = WordPressIntegrationSchema.parse(args);
+
+    const guide = this.buildWordPressIntegrationGuide(params);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(guide, null, 2),
+        },
+      ],
+    };
+  }
+
+  /**
+   * Build WordPress integration guidance
+   */
+  private buildWordPressIntegrationGuide(params: WordPressIntegrationParams) {
+    const { context, bundler, enableRTL, enableMotionUI, enableBlockEditor, enqueueJQuery } = params;
+
+    const assetPipeline = bundler === 'none'
+      ? 'Use the prebuilt dist assets (dist/css/foundation.css and dist/js/foundation.js) and copy them into your theme or plugin assets folder.'
+      : `Compile Foundation assets with ${bundler} into your theme/plugin dist folder (e.g., dist/css/theme.css and dist/js/theme.js). Ensure the output includes Foundation JS, Motion UI${enableMotionUI ? ', and your custom scripts' : ''}.`;
+
+    const enqueueSnippet = `function foundation_enqueue_assets() {
+  $version = '6.9.x';
+  $theme_dir = get_template_directory_uri();
+
+  wp_enqueue_style(
+    'foundation-styles',
+    $theme_dir . '/dist/css/${context === 'plugin' ? 'plugin' : 'theme'}.css',
+    [],
+    $version
+  );
+
+  wp_enqueue_script(
+    'foundation-scripts',
+    $theme_dir . '/dist/js/${context === 'plugin' ? 'plugin' : 'theme'}.js',
+    [${enqueueJQuery ? "'jquery'" : ''}],
+    $version,
+    true
+  );
+
+  wp_add_inline_script('foundation-scripts', 'jQuery(document).foundation();');
+}
+add_action('${context === 'plugin' ? 'wp_enqueue_scripts' : 'wp_enqueue_scripts'}', 'foundation_enqueue_assets');`;
+
+    const blockEditorNotes = enableBlockEditor
+      ? [
+          'Register a separate editor stylesheet using add_editor_style or enqueue_block_editor_assets to avoid front-end overrides.',
+          'Scope Foundation utility classes used in blocks to prevent global resets from affecting the editor canvas.',
+          'Avoid running JavaScript plugins inside the editor unless necessary; if required, gate initialization behind is_admin() checks and specific block selectors.',
+        ]
+      : [];
+
+    const rtlNotes = enableRTL
+      ? [
+          'Run foundation-rtl.scss or enable rtlcss in your build to emit RTL assets.',
+          'Hook into WordPress RTL detection by enqueueing an rtl stylesheet via is_rtl().',
+        ]
+      : [];
+
+    return {
+      summary: `Guidance for integrating Foundation into a WordPress ${context}.`,
+      steps: [
+        'Install and build Foundation assets within your theme or plugin (Node 18+, Yarn or npm).',
+        assetPipeline,
+        'Place compiled assets under dist/css and dist/js (or a similar path) within your theme/plugin.',
+        'Enqueue styles and scripts via wp_enqueue_style/wp_enqueue_script with the jquery dependency before Foundation scripts.',
+        'Initialize Foundation on document ready using jQuery(document).foundation();',
+        'Use data- attributes (data-accordion, data-dropdown, etc.) in your PHP templates or block markup to attach plugins.',
+        'For performance, dequeue unused Foundation plugins/components from your bundle when possible.',
+        'Verify compatibility with caching/minification plugins (e.g., Autoptimize, WP Rocket) by excluding foundation.js if deferred incorrectly.',
+      ],
+      enqueueExample: enqueueSnippet,
+      phpTemplateTips: [
+        'Output data-options via esc_attr to keep HTML valid.',
+        'Use wp_localize_script if you need to pass PHP data into Foundation plugins.',
+        'Scope JavaScript initialization to specific templates when not needed globally to reduce overhead.',
+      ],
+      blockEditor: blockEditorNotes,
+      rtl: rtlNotes,
+      motionUI: enableMotionUI
+        ? 'Include motion-ui in your bundle and enqueue its CSS (motion-ui.css) when using transitions/animations.'
+        : 'Motion UI not requested; you can skip motion-ui to reduce bundle size.',
+      troubleshooting: [
+        'If plugins fail to initialize, confirm jQuery is loaded first and noConflict is not stripping $; use window.jQuery.',
+        'If styles are overridden, check theme specificity and ensure Foundation globals load before custom overrides.',
+        'For lazy-loaded fragments (AJAX), call Foundation.reInit on the injected markup.',
       ],
     };
   }

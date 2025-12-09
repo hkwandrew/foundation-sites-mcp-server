@@ -57,6 +57,12 @@ export class ResourceHandler {
           description: 'Test patterns for Sass components',
           mimeType: 'text/plain',
         },
+        {
+          uri: 'foundation://integrations/wordpress',
+          name: 'WordPress Integration Guide',
+          description: 'How to use Foundation within WordPress themes or plugins',
+          mimeType: 'text/markdown',
+        },
       ],
     };
   }
@@ -89,6 +95,10 @@ export class ResourceHandler {
 
     if (uri === 'foundation://patterns/tests/sass') {
       return this.getSassTestPattern();
+    }
+
+    if (uri === 'foundation://integrations/wordpress') {
+      return this.getWordPressIntegration();
     }
 
     // Handle dynamic resources (plugin/component specific)
@@ -381,6 +391,75 @@ export class ResourceHandler {
           uri: `foundation://components/${slug}/docs`,
           mimeType: 'text/markdown',
           text: `# ${component.name}\n\n${component.description}\n\nDocs: ${component.docs}`,
+        },
+      ],
+    };
+  }
+
+  /**
+   * Get WordPress integration guidance
+   */
+  private async getWordPressIntegration() {
+    const markdown = [
+      '# Foundation + WordPress Integration',
+      '',
+      'Use this guide to embed Foundation Sites inside a WordPress **theme** or **plugin** without fighting the WP asset pipeline.',
+      '',
+      '## 1) Build or copy assets',
+      '- Compile Foundation (Node 18+, yarn build) or copy prebuilt `dist/css/foundation.css` and `dist/js/foundation.js`.',
+      '- Keep assets in `dist/css` and `dist/js` (or similar) inside your theme/plugin.',
+      '- If you use Motion UI, include its CSS output too.',
+      '',
+      '## 2) Enqueue in WordPress',
+      '```php',
+      'function foundation_enqueue_assets() {',
+      "  $version = '6.9.x';",
+      '  $theme_dir = get_template_directory_uri();',
+      '',
+      "  wp_enqueue_style(",
+      "    'foundation-styles',",
+      "    $theme_dir . '/dist/css/theme.css',",
+      "    [],",
+      "    $version",
+      "  );",
+      '',
+      "  wp_enqueue_script(",
+      "    'foundation-scripts',",
+      "    $theme_dir . '/dist/js/theme.js',",
+      "    ['jquery'],",
+      "    $version,",
+      "    true",
+      "  );",
+      '',
+      "  wp_add_inline_script('foundation-scripts', 'jQuery(document).foundation();');",
+      '}',
+      "add_action('wp_enqueue_scripts', 'foundation_enqueue_assets');",
+      '```',
+      '',
+      '## 3) Use data- attributes in PHP templates',
+      '- Add `data-accordion`, `data-dropdown`, `data-tabs`, etc. to markup generated in PHP or block templates.',
+      '- Pass options safely with `data-options="deep_link: true;"` wrapped by `esc_attr`.',
+      '',
+      '## 4) Block editor notes',
+      '- If needed, enqueue a light editor stylesheet via `enqueue_block_editor_assets` to avoid heavy resets.',
+      '- Avoid running JS plugins in the editor unless required; if you must, gate initialization with `is_admin()` and block-specific selectors.',
+      '',
+      '## 5) RTL and accessibility',
+      '- Generate RTL CSS (rtlcss or foundation-rtl.scss) and enqueue conditionally when `is_rtl()` is true.',
+      '- Foundation plugins rely on ARIA; keep semantic markup intact.',
+      '',
+      '## 6) Troubleshooting',
+      '- Missing JS? Ensure jQuery is enqueued before Foundation and noConflict is not stripping `$` (use `window.jQuery`).',
+      '- Layout clashes? Load Foundation first, then your overrides; inspect theme styles with higher specificity.',
+      '- AJAX/fragment loads? Call `Foundation.reInit($fragment)` after injecting markup.',
+    ].join('\n');
+
+    return {
+      contents: [
+        {
+          uri: 'foundation://integrations/wordpress',
+          mimeType: 'text/markdown',
+          text: markdown,
         },
       ],
     };

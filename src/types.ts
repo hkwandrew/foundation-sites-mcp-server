@@ -134,6 +134,17 @@ export const QueryArchitectureSchema = z.object({
 
 export type QueryArchitectureParams = z.infer<typeof QueryArchitectureSchema>;
 
+export const WordPressIntegrationSchema = z.object({
+  context: z.enum(['theme', 'plugin']).default('theme').describe('Target WordPress integration type'),
+  bundler: z.enum(['gulp', 'webpack', 'vite', 'mix', 'none']).default('gulp').describe('Primary build tool used to compile Foundation assets'),
+  enableRTL: z.boolean().default(false).describe('Generate guidance for RTL styles'),
+  enableMotionUI: z.boolean().default(true).describe('Include Motion UI guidance'),
+  enableBlockEditor: z.boolean().default(false).describe('Include WordPress block editor compatibility notes'),
+  enqueueJQuery: z.boolean().default(true).describe('Ensure jQuery dependency is enqueued before Foundation scripts'),
+});
+
+export type WordPressIntegrationParams = z.infer<typeof WordPressIntegrationSchema>;
+
 export const RefactorToFoundationSchema = z.object({
   sourceCode: z.string().describe('Code to refactor'),
   sourceType: z.enum(['custom-plugin', 'custom-component']).describe('Type of code'),
@@ -236,6 +247,19 @@ export const QueryArchitectureInputSchema = {
     context: { type: 'string', enum: ['plugin', 'component', 'build', 'testing'], description: 'Query context' },
   },
   required: ['question'],
+} as const;
+
+export const WordPressIntegrationInputSchema = {
+  type: 'object',
+  properties: {
+    context: { type: 'string', enum: ['theme', 'plugin'], description: 'Target WordPress integration type' },
+    bundler: { type: 'string', enum: ['gulp', 'webpack', 'vite', 'mix', 'none'], description: 'Build tool used for assets' },
+    enableRTL: { type: 'boolean', description: 'Whether to emit RTL guidance' },
+    enableMotionUI: { type: 'boolean', description: 'Whether to include Motion UI guidance' },
+    enableBlockEditor: { type: 'boolean', description: 'Whether to include Gutenberg/block editor guidance' },
+    enqueueJQuery: { type: 'boolean', description: 'Whether to ensure jQuery is enqueued before Foundation scripts' },
+  },
+  required: [],
 } as const;
 
 export const RefactorToFoundationInputSchema = {

@@ -99,6 +99,7 @@ Use the Foundation MCP server at foundation:// for:
 - `foundation://build/config` - Build system configuration
 - `foundation://architecture/plugins` - Plugin architecture guide
 - `foundation://patterns/tests/{type}` - Test patterns
+- `foundation://integrations/wordpress` - Guidance for using Foundation inside WordPress themes or plugins
 
 ## Available Tools
 
@@ -118,6 +119,7 @@ Use the Foundation MCP server at foundation:// for:
 
 ### Validation
 - `validate_plugin` - Validate plugin code
+- `wordpress_integration_guide` - Steps and snippets for enqueueing Foundation in WordPress (theme or plugin)
 
 ## Architecture
 
