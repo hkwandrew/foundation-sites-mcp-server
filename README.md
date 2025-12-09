@@ -242,7 +242,3 @@ The tool will return:
 - List of breaking changes and solutions
 - Recommended migration strategy
 - Step-by-step integration instructions
-
-## License
-
-MIT - See [LICENSE](../LICENSE) for details.
